@@ -3,10 +3,10 @@ package paste
 import (
         "fmt"
         "encoding/hex"
-        "github.com/google/uuid"
-        _ "github.com/mattn/go-sqlite3"
         "database/sql"
         "crypto/sha256"
+        "github.com/google/uuid"
+        _ "github.com/mattn/go-sqlite3"
        )
 
 type Paste struct {
@@ -25,6 +25,7 @@ func GetPaste(idstring string) ([]byte, error) {
     if err != nil {
         return nil, err
     }
+    defer db.Close()
 
     var rows *sql.Rows
     var paste string
@@ -40,7 +41,6 @@ func GetPaste(idstring string) ([]byte, error) {
         } else { // short
             rows, err = db.Query(fmt.Sprintf("SELECT data FROM paste WHERE shortHash = '%x'", id))
         }
-
         if err != nil {
             return nil, err
         }
@@ -59,6 +59,35 @@ func GetPaste(idstring string) ([]byte, error) {
     }
 
     return []byte(paste), nil
+}
+
+func UpdatePaste(possibleUuid []byte, data []byte) (error) {
+    uid, err := uuid.Parse(string(possibleUuid))
+    if err != nil {
+        return err
+    }
+
+    if len(data) == 0 {
+        return fmt.Errorf("no data")
+    }
+
+    db, err := sql.Open("sqlite3", "./pastes.db")
+    if err != nil {
+        return err
+    }
+    defer db.Close()
+
+    stmt, err := db.Prepare("UPDATE paste SET data = ? WHERE uuid = ?")
+    if err != nil {
+        return err
+    }
+
+    res, err := stmt.Exec(data, fmt.Sprintf("%s", uid))
+    if err != nil || res == nil {
+        return err
+    }
+
+    return nil
 }
 
 func New(data []byte, private bool, timer int) (*Paste, error) {

@@ -27,6 +27,9 @@ func hello(w http.ResponseWriter, r *http.Request) {
 
 func handleGetRequest(w http.ResponseWriter, r *http.Request) {
     id := r.URL.Path[1:]
+    if len(id) < 6 {
+        w.WriteHeader(http.StatusBadRequest)
+    }
     web := id[len(id)-4:] == "/web"
     if web {
         id = id[:len(id)-4]
@@ -34,8 +37,8 @@ func handleGetRequest(w http.ResponseWriter, r *http.Request) {
     p, err := paste.GetPaste(id)
 
     if err != nil {
-        log.Println("Error has occurred getting the paste", id, ":", err)
-        w.WriteHeader(http.StatusBadRequest)
+        log.Println("Error has occurred getting", id, ":", err)
+        w.WriteHeader(http.StatusNotFound)
         return
     }
 
@@ -49,7 +52,7 @@ func handleGetRequest(w http.ResponseWriter, r *http.Request) {
 func handlePostRequest(w http.ResponseWriter, r *http.Request) {
     file, _/*fileHeader*/, err := r.FormFile("c")
     if err != nil {
-        fmt.Fprintf(w, "\n")
+        w.WriteHeader(http.StatusBadRequest)
         return
     }
     b, err := ioutil.ReadAll(file)
@@ -77,7 +80,29 @@ func handlePostRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePutRequest(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "not implemented yet\n")
+    id := r.URL.Path[1:]
+
+    file, _/*fileHeader*/, err := r.FormFile("c")
+    if err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+    data, err := ioutil.ReadAll(file)
+    if err != nil {
+        log.Println("an error has occurred reading the file:", err)
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+
+    err = paste.UpdatePaste([]byte(id), data)
+
+    if err != nil {
+        log.Println("an error has occurred updating the file:", err)
+        w.WriteHeader(http.StatusUnauthorized)
+        return
+    }
+
+    fmt.Fprintf(w, "ok\n")
 }
 
 func handleDeleteRequest(w http.ResponseWriter, r *http.Request) {
