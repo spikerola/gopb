@@ -20,7 +20,7 @@ func (p Paste) String() string {
     return fmt.Sprintf("%s : %s : %x : %x", string(p.Data[:10]), p.Uuid, p.Hash, p.ShortHash)
 }
 
-func GetPaste(idstring string) ([]byte, error) {
+func Get(idstring string) ([]byte, error) {
     db, err := sql.Open("sqlite3", "./pastes.db")
     if err != nil {
         return nil, err
@@ -61,7 +61,7 @@ func GetPaste(idstring string) ([]byte, error) {
     return []byte(paste), nil
 }
 
-func UpdatePaste(possibleUuid []byte, data []byte) (error) {
+func Update(possibleUuid []byte, data []byte) (error) {
     uid, err := uuid.Parse(string(possibleUuid))
     if err != nil {
         return err
@@ -83,6 +83,31 @@ func UpdatePaste(possibleUuid []byte, data []byte) (error) {
     }
 
     res, err := stmt.Exec(data, fmt.Sprintf("%s", uid))
+    if err != nil || res == nil {
+        return err
+    }
+
+    return nil
+}
+
+func Delete(possibleUuid []byte) (error) {
+    uid, err := uuid.Parse(string(possibleUuid))
+    if err != nil {
+        return err
+    }
+
+    db, err := sql.Open("sqlite3", "./pastes.db")
+    if err != nil {
+        return err
+    }
+    defer db.Close()
+
+    stmt, err := db.Prepare("DELETE FROM paste WHERE uuid = ?")
+    if err != nil {
+         return err
+    }
+
+    res, err := stmt.Exec(fmt.Sprintf("%s", uid))
     if err != nil || res == nil {
         return err
     }

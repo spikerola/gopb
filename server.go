@@ -26,15 +26,17 @@ func hello(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetRequest(w http.ResponseWriter, r *http.Request) {
-    id := r.URL.Path[1:]
-    if len(id) < 6 {
+    id := r.URL.Path[:]
+    if len(id) < 8 {
         w.WriteHeader(http.StatusBadRequest)
+        return
     }
+    id = id[1:]
     web := id[len(id)-4:] == "/web"
     if web {
         id = id[:len(id)-4]
     }
-    p, err := paste.GetPaste(id)
+    p, err := paste.Get(id)
 
     if err != nil {
         log.Println("Error has occurred getting", id, ":", err)
@@ -80,7 +82,12 @@ func handlePostRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePutRequest(w http.ResponseWriter, r *http.Request) {
-    id := r.URL.Path[1:]
+    id := r.URL.Path[:]
+    if len(id) < 8 {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+    id = id[1:]
 
     file, _/*fileHeader*/, err := r.FormFile("c")
     if err != nil {
@@ -89,15 +96,15 @@ func handlePutRequest(w http.ResponseWriter, r *http.Request) {
     }
     data, err := ioutil.ReadAll(file)
     if err != nil {
-        log.Println("an error has occurred reading the file:", err)
+        log.Println("an error has occurred reading a paste:", err)
         w.WriteHeader(http.StatusInternalServerError)
         return
     }
 
-    err = paste.UpdatePaste([]byte(id), data)
+    err = paste.Update([]byte(id), data)
 
     if err != nil {
-        log.Println("an error has occurred updating the file:", err)
+        log.Println("an error has occurred updating a paste:", err)
         w.WriteHeader(http.StatusUnauthorized)
         return
     }
@@ -106,7 +113,20 @@ func handlePutRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDeleteRequest(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "not implemented yet\n")
+    id := r.URL.Path[:]
+    if len(id) < 8 {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+    id = id[1:]
+
+    err := paste.Delete([]byte(id))
+
+    if err != nil {
+        log.Println("an error has occurred deleting a paste:", err)
+    }
+
+    fmt.Fprintf(w, "ok\n")
 }
 
 type httpRouter map[string]func(http.ResponseWriter, *http.Request)
