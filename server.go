@@ -3,7 +3,6 @@ package main
 /* see ./paste.go */
 
 import (
-        "io"
         "fmt"
         "html"
         "net/http"
@@ -23,7 +22,7 @@ https://golang.org/pkg/net/http/
 */
 
 func hello(w http.ResponseWriter, r *http.Request) {
-    io.WriteString(w, "gopb is running\n")
+    fmt.Fprintf(w, "gopb is running\n")
 }
 
 func handleGetRequest(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +49,7 @@ func handleGetRequest(w http.ResponseWriter, r *http.Request) {
 func handlePostRequest(w http.ResponseWriter, r *http.Request) {
     file, _/*fileHeader*/, err := r.FormFile("c")
     if err != nil {
-        io.WriteString(w, "\n")
+        fmt.Fprintf(w, "\n")
         return
     }
     b, err := ioutil.ReadAll(file)
@@ -78,11 +77,11 @@ func handlePostRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePutRequest(w http.ResponseWriter, r *http.Request) {
-    io.WriteString(w, "not implemented yet\n")
+    fmt.Fprintf(w, "not implemented yet\n")
 }
 
 func handleDeleteRequest(w http.ResponseWriter, r *http.Request) {
-    io.WriteString(w, "not implemented yet\n")
+    fmt.Fprintf(w, "not implemented yet\n")
 }
 
 type httpRouter map[string]func(http.ResponseWriter, *http.Request)
