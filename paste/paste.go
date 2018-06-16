@@ -2,27 +2,88 @@ package paste
 
 import (
         "fmt"
+        "encoding/hex"
         "github.com/google/uuid"
+        _ "github.com/mattn/go-sqlite3"
+        "database/sql"
         "crypto/sha256"
        )
 
 type Paste struct {
-    paste       []byte
-    uuid        uuid.UUID
-    hash        [32]byte
-    shortHash   [4]byte
+    Data        []byte
+    Uuid        uuid.UUID
+    Hash        [32]byte
+    ShortHash   [4]byte
 }
 
-func (p *Paste) String() string {
-    return fmt.Sprintf("%s : %s : %x : %x", string(p.paste[:10]), p.uuid, p.hash, p.shortHash)
+func (p Paste) String() string {
+    return fmt.Sprintf("%s : %s : %x : %x", string(p.Data[:10]), p.Uuid, p.Hash, p.ShortHash)
 }
 
-func New(data []byte, private bool, timer int) (*Paste, bool) {
+func GetPaste(idstring string) ([]byte, error) {
+    db, err := sql.Open("sqlite3", "./pastes.db")
+    if err != nil {
+        return nil, err
+    }
+
+    var rows *sql.Rows
+    var paste string
+
+    if uid, err := uuid.Parse(idstring); err == nil { // we have the uuid
+        rows, err = db.Query(fmt.Sprintf("SELECT data FROM paste WHERE uuid = '%s'", uid))
+        if err != nil {
+            return nil, err
+        }
+    } else if id, err := hex.DecodeString(idstring); err == nil { // we have the hex
+        if len(id) == 32 { // complete
+            rows, err = db.Query(fmt.Sprintf("SELECT data FROM paste WHERE hash = '%x'", id))
+        } else { // short
+            rows, err = db.Query(fmt.Sprintf("SELECT data FROM paste WHERE shortHash = '%x'", id))
+        }
+
+        if err != nil {
+            return nil, err
+        }
+    } else {
+        return nil, fmt.Errorf("not found")
+    }
+
+
+    if rows.Next() == false {
+        return nil, fmt.Errorf("not found")
+    }
+
+    err = rows.Scan(&paste)
+    if err != nil {
+        return nil, err
+    }
+
+    return []byte(paste), nil
+}
+
+func New(data []byte, private bool, timer int) (*Paste, error) {
     uid     := uuid.New()
-    sha     := sha256.Sum256(data)
+    sha     := sha256.Sum256([]byte(fmt.Sprintf("%s", uid)))
     var short [4]byte
     copy(short[:], sha[28:])
-    // save paste on db
-    return &Paste{data, uid, sha, short}, false
+
+    db, err := sql.Open("sqlite3", "./pastes.db")
+    if err != nil {
+        return nil, err
+    }
+
+    stmt, err := db.Prepare("INSERT INTO paste(uuid, data, hash, shortHash) values(?, ?, ?, ?)")
+    if err != nil {
+        return nil, err
+    }
+
+    res, err := stmt.Exec(fmt.Sprintf("%s", uid), data, fmt.Sprintf("%x", sha), fmt.Sprintf("%x", short))
+    if err != nil || res == nil {
+        return nil, err
+    }
+
+    db.Close()
+
+    return &Paste{data, uid, sha, short}, nil
 }
 

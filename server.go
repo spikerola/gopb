@@ -4,6 +4,8 @@ package main
 
 import (
         "io"
+        "fmt"
+        "html"
         "net/http"
         "log"
         "io/ioutil"
@@ -16,7 +18,7 @@ import (
 
 /* links opened
 https://golang.org/pkg/crypto/sha256/
-https://stackoverflow.com/questions/28933687/golang-random-sha256#28933817
+https://stackoverflow.com/questions/28933692/golang-random-sha256#28933817
 https://golang.org/pkg/net/http/
 */
 
@@ -25,7 +27,24 @@ func hello(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetRequest(w http.ResponseWriter, r *http.Request) {
-    io.WriteString(w, "not implemented yet\n")
+    id := r.URL.Path[1:]
+    web := id[len(id)-4:] == "/web"
+    if web {
+        id = id[:len(id)-4]
+    }
+    p, err := paste.GetPaste(id)
+
+    if err != nil {
+        log.Println("Error has occurred getting the paste", id, ":", err)
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+
+    if web {
+        p = []byte(fmt.Sprintf("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\"></head><body><pre>%s</pre></body></html>", html.EscapeString(string(p))))
+    }
+
+    fmt.Fprintf(w, "%s", p)
 }
 
 func handlePostRequest(w http.ResponseWriter, r *http.Request) {
@@ -36,8 +55,8 @@ func handlePostRequest(w http.ResponseWriter, r *http.Request) {
     }
     b, err := ioutil.ReadAll(file)
     if err != nil {
-        log.Println(err)
-        io.WriteString(w, "an error has occurred reading the file\n")
+        log.Println("an error has occurred reading the file:", err)
+        w.WriteHeader(http.StatusInternalServerError)
         return
     }
     // save pb
@@ -48,14 +67,14 @@ func handlePostRequest(w http.ResponseWriter, r *http.Request) {
             t = t2
         }
     }
-    pst, ok := paste.New(b, p == 1, t)
-    log.Println(pst)
-    if !ok {
-        io.WriteString(w, "an error has occurred saving the file\n")
+    pst, err := paste.New(b, p == 1, t)
+    if err != nil {
+        log.Println("an error has occurred saving the file:", err)
+        w.WriteHeader(http.StatusInternalServerError)
         return
     }
     // continue with the paste
-    io.WriteString(w, "ok\n")
+    fmt.Fprintf(w, "uuid: %s\nlong: %x\nshort: %x\n", pst.Uuid, pst.Hash, pst.ShortHash)
 }
 
 func handlePutRequest(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +109,7 @@ func (*hndlr) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         if h, ok := mux[r.URL.String()]; ok {
             h(w, r)
         } else {
-            io.WriteString(w, "is this a 404?\n")
+            handleGetRequest(w, r)
         }
     case "POST":
         handlePostRequest(w, r)
