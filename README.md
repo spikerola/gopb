@@ -29,6 +29,12 @@ curl -X DELTE https://yourpbserver/paste-uuid
 
 ## Installation
 
+dependencies
+```bash
+go install github.com/google/uuid
+go install github.com/mattn/go-sqlite3
+```
+
 compile
 ```bash
 cd whatever/dir/gopb/

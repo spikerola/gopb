@@ -1,7 +1,5 @@
 package main
 
-/* see ./paste.go */
-
 import (
         "fmt"
         "html"
@@ -11,15 +9,6 @@ import (
         "strconv"
         "gopb/paste"
 )
-
-/* to run use
-   $ go run *.go */
-
-/* links opened
-https://golang.org/pkg/crypto/sha256/
-https://stackoverflow.com/questions/28933692/golang-random-sha256#28933817
-https://golang.org/pkg/net/http/
-*/
 
 func hello(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "gopb is running\n")
