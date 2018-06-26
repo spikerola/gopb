@@ -20,7 +20,7 @@ func (p Paste) String() string {
     return fmt.Sprintf("%s : %s : %x : %x", string(p.Data[:10]), p.Uuid, p.Hash, p.ShortHash)
 }
 
-func Get(idstring string) ([]byte, error) {
+func Get(pid []byte) ([]byte, error) {
     db, err := sql.Open("sqlite3", "./pastes.db")
     if err != nil {
         return nil, err
@@ -28,14 +28,14 @@ func Get(idstring string) ([]byte, error) {
     defer db.Close()
 
     var rows *sql.Rows
-    var paste string
+    var paste []byte
 
-    if uid, err := uuid.Parse(idstring); err == nil { // we have the uuid
+    if uid, err := uuid.Parse(string(pid)); err == nil { // we have the uuid
         rows, err = db.Query(fmt.Sprintf("SELECT data FROM paste WHERE uuid = '%s'", uid))
         if err != nil {
             return nil, err
         }
-    } else if id, err := hex.DecodeString(idstring); err == nil { // we have the hex
+    } else if id, err := hex.DecodeString(string(pid)); err == nil { // we have the hex
         if len(id) == 32 { // complete
             rows, err = db.Query(fmt.Sprintf("SELECT data FROM paste WHERE hash = '%x'", id))
         } else { // short
@@ -58,7 +58,7 @@ func Get(idstring string) ([]byte, error) {
         return nil, err
     }
 
-    return []byte(paste), nil
+    return paste, nil
 }
 
 func Update(possibleUuid []byte, data []byte) (error) {

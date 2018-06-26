@@ -36,7 +36,7 @@ func handleGetRequest(w http.ResponseWriter, r *http.Request) {
     if web {
         id = id[:len(id)-4]
     }
-    p, err := paste.Get(id)
+    p, err := paste.Get([]byte(id))
 
     if err != nil {
         log.Println("Error has occurred getting", id, ":", err)
