@@ -1,3 +1,33 @@
+#Go Pastebin
+
+## Usage
+
+upload
+```bash
+cmd | curl -F c=@- https://yourpbserver/
+```
+
+get
+```
+curl https://yourpbserver/pastehash > yourdata
+```
+
+get from browser
+```
+https://yourpbserver/pastehash/web
+```
+
+updating
+```bash
+curl -X PUT -F c=@- https://yourpbserver/paste-uuid < yourdata
+```
+
+deleting
+```bash
+curl -X DELTE https://yourpbserver/paste-uuid
+```
+
+## Installation
 
 compile
 ```bash
@@ -15,4 +45,8 @@ run
 ```bash
 ./gopb &>>logs &
 ```
+
+## TODO
+
+- sunset - destroy paste after x seconds
 
