@@ -1,4 +1,4 @@
-#Go Pastebin
+# Go Pastebin
 
 ## Usage
 
