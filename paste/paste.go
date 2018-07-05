@@ -35,6 +35,8 @@ func Get(pid []byte) ([]byte, error) {
         if err != nil {
             return nil, err
         }
+
+        defer rows.Close()
     } else if id, err := hex.DecodeString(string(pid)); err == nil { // we have the hex
         if len(id) == 32 { // complete
             rows, err = db.Query(fmt.Sprintf("SELECT data FROM paste WHERE hash = '%x'", id))
@@ -44,6 +46,7 @@ func Get(pid []byte) ([]byte, error) {
         if err != nil {
             return nil, err
         }
+        defer rows.Close()
     } else {
         return nil, fmt.Errorf("not found")
     }
@@ -81,6 +84,7 @@ func Update(possibleUuid []byte, data []byte) (error) {
     if err != nil {
         return err
     }
+    defer stmt.Close()
 
     res, err := stmt.Exec(data, fmt.Sprintf("%s", uid))
     if err != nil || res == nil {
@@ -107,10 +111,14 @@ func Delete(possibleUuid []byte) (error) {
          return err
     }
 
+    defer db.Close()
+
     res, err := stmt.Exec(fmt.Sprintf("%s", uid))
     if err != nil || res == nil {
         return err
     }
+
+    defer stmt.Close()
 
     return nil
 }
@@ -136,7 +144,8 @@ func New(data []byte, private bool, timer int) (*Paste, error) {
         return nil, err
     }
 
-    db.Close()
+    defer db.Close()
+    defer stmt.Close()
 
     return &Paste{data, uid, sha, short}, nil
 }
